@@ -157,7 +157,12 @@ class Joint(object):
 
 	def __str__(self):
 		visibility = 'visible' if self.visible else 'occluded'
-		return f'{self.name}|2D:({self.x2d},{self.y2d})|3D:({self.x3d},{self.y3d},{self.z3d})|{visibility}'
+		return
+
+
+
+
+		#return f'{self.name}|2D:({self.x2d},{self.y2d})|3D:({self.x3d},{self.y3d},{self.z3d})|{visibility}'
 
 
 	__repr__ = __str__
