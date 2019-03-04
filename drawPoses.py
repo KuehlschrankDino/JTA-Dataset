@@ -52,11 +52,9 @@ H1 = "path to the json-File containing the annotations"
 #datapath="/home/kaltob/Workspace/Optimization-of-Human-Body-Pose-Estimation-for-Crowd-Applications/code/python/human-pose-estimation.pytorch/data/mpii/images"
 
 
-datapath = "/home/kaltob/Workspace/Optimization-of-Human-Body-Pose-Estimation-for-Crowd-Applications/code/data/JTA-Data/images/train/"
+datapath = "../../data/JTA"
 #datapath = ""
-jso = "/home/kaltob/Workspace/human-pose-estimation.pytorch/data/coco/annotations/person_keypoints_val2017.json"
-jso1 = "/home/kaltob/Workspace/Optimization-of-Human-Body-Pose-Estimation-for-Crowd-Applications/code/python/human-pose-estimation.pytorch/data/mpii/annot/train.json"
-jso2 = "/home/kaltob/Workspace/Optimization-of-Human-Body-Pose-Estimation-for-Crowd-Applications/code/data/JTA-Data/annotations/train/seq_92.json"
+
 @click.command()
 @click.option('--json_file_path', type=click.Path(exists=True), prompt='Enter \'json_file_path\'', help=H1)
 def main(json_file_path):
