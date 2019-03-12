@@ -7,12 +7,14 @@ import cv2
 import numpy as np
 
 from joint import Joint
-
-
+jta_idx = [i for i in range(22)]
+crowd_pose_idx = [8, 4, 9, 5, 10, 6, 19, 16, 20, 17, 21, 18, 0, 2]
 class Pose(list):
 	"""
 	a Pose is a list of Joint(s) belonging to the same person.
 	"""
+
+
 
 	LIMBS = [
 		(0, 1),  # head_top -> head_center
@@ -39,12 +41,12 @@ class Pose(list):
 	]
 
 	SKELETON = [[l[0] + 1, l[1] + 1] for l in LIMBS]
+	SKELETON_CROWD_POSE = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13], [6, 7], [6, 8], [7, 9], [8, 10], [9, 11]]
 
-
-	def __init__(self, joints):
+	def __init__(self, joints, keypoint_style):
 		# type: (List[Joint]) -> None
 		super().__init__(joints)
-
+		self.keypoint_style = keypoint_style
 
 	@property
 	def invisible(self):
@@ -96,6 +98,43 @@ class Pose(list):
 		keypoints = []
 		for j in self:
 			keypoints += [j.x2d, j.y2d, 2]
+		annotation = {
+			'keypoints': keypoints,
+			'num_keypoints': len(self),
+			'bbox': self.bbox_2d
+		}
+		return annotation
+
+	@property
+	def dino_annotation(self):
+		# type: () -> Dict
+		"""
+		:return: COCOlike annotation dictionary of the pose
+		==========================================================
+		NOTE#1: in ###, each keypoint is represented by its (x,y)
+		2D location and a visibility flag `v` defined as:
+			- `v=0` ==> not labeled (in which case x=y=0)
+			- `v=1` ==> labeled but not visible
+			- `v=2` ==> labeled and visible
+			- 'v=3' ==> labeld and self occluded
+		==========================================================
+		"""
+		if(self.keypoint_style == "CrowdPose"):
+			idx = crowd_pose_idx
+		elif(self.keypoint_style == "PoseTrack"):
+			idx = None
+		else:
+			idx = jta_idx
+
+        # for idx in crowd_pose_idx:
+        #    keypoints += [self[idx].x2d, self[idx].y2d, self[idx].get_v_flag]
+
+		kpts = np.zeros((len(self), 3))
+		for i, j in enumerate(self):
+				kpts[i, ] = [j.x2d, j.y2d, j.get_v_flag]
+		keypoints = []
+		for i in idx:
+			keypoints += [kpts[i, ]]
 		annotation = {
 			'keypoints': keypoints,
 			'num_keypoints': len(self),

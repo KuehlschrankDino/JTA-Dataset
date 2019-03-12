@@ -3,11 +3,12 @@
 
 import json
 import sys
-
+import os.path as osp
 import click
 import imageio
 import numpy as np
 from path import Path
+from pandas import read_csv
 
 from joint import Joint
 from pose import Pose
@@ -16,8 +17,8 @@ from pose import Pose
 imageio.plugins.ffmpeg.download()
 MAX_COLORS = 42
 
-# check python version
-assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
+# check python version ##the world is not ready for f-strings yet
+#assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
 
 
 def get_pose(frame_data, person_id):
@@ -30,14 +31,18 @@ def get_pose(frame_data, person_id):
     pose = [Joint(j) for j in frame_data[frame_data[:, 1] == person_id]]
     pose.sort(key=(lambda j: j.type))
     return Pose(pose)
-
-
-H1 = 'path of the output directory'
+H1 = 'style of the annotation format'
+H2 ='style of the keypoint format'
+H3 = 'path of the output directory'
+H4 = 'path of the annotation directory'
 
 
 @click.command()
-@click.option('--out_dir_path', type=click.Path(), prompt='Enter \'out_dir_path\'', help=H1)
-def main(out_dir_path):
+@click.option('--annotation_style', type=click.Choice(['coco', 'PoseTrack']), prompt='Choose \'annotation_style\'', help=H1)
+@click.option('--keypoint_style', type=click.Choice(['JTA', 'CrowdPose', 'PoseTrack']), prompt='Choose \'keypoint_style\'', help=H2)
+@click.option('--out_dir_path', type=click.Path(), prompt='Enter \'out_dir_path\'', help=H3)
+@click.option('--dataset_root', type=click.Path(), prompt='Enter \'annotations_root\'', help=H3)
+def main(annotation_style, keypoint_style, out_dir_path):
     # type: (str) -> None
     """
     Script for annotation conversion (from JTA format to COCO format)
@@ -54,11 +59,18 @@ def main(out_dir_path):
         print(f'▸ converting \'{dir.basename()}\' set')
         for anno in dir.files():
 
-            with open(anno, 'r') as json_file:
-                data = json.load(json_file)
-                data = np.array(data)
+            if anno.endswith('.json'):
+                with open(anno, 'r') as json_file:
+                    data = json.load(json_file)
+                    data = np.array(data)
+            elif anno.endswith('.csv'):
+                df = read_csv(anno, sep=",")
+                df = df.drop(axis=1,
+                             labels=["cam_3D_x", "cam_3D_y", "cam_3D_z", "cam_rot_x", "cam_rot_y", "cam_rot_z", "fov"])
+                data = df.to_numpy(dtype=np.float32)
 
-            print(f'▸ converting annotations of \'{Path(anno).abspath()}\'')
+            print("▸ converting annotations of".format(Path(anno).abspath()))
+            #print(f'▸ converting annotations of \'{Path(anno).abspath()}\'')
 
             # getting sequence number from `anno`
             sequence = None
@@ -66,7 +78,7 @@ def main(out_dir_path):
                 sequence = int(Path(anno).basename().split('_')[1].split('.')[0])
             except:
                 print('[!] error during conversion.')
-                print('\ttry using JSON files with the original nomenclature.')
+                print('\ttry using JSON/CSV files with the original nomenclature.')
 
             coco_dict = {
                 'info': {
@@ -108,7 +120,7 @@ def main(out_dir_path):
                 # NOTE: frame #0 does NOT exists: first frame is #1
                 frame_data = data[data[:, 0] == frame_number + 1]  # type: np.ndarray
 
-                for p_id in set(frame_data[:, 1]):
+                for p_id in set(frame_data[:, 1]):#todo check that the p_ids are not really large number
                     pose = get_pose(frame_data=frame_data, person_id=p_id)
 
                     # ignore the "invisible" poses
@@ -122,10 +134,10 @@ def main(out_dir_path):
                     annotation['category_id'] = 1
                     coco_dict['annotations'].append(annotation)
 
-                print(f'\r▸ progress: {100 * (frame_number / 899):6.2f}%', end='')
+                #print(f'\r▸ progress: {100 * (frame_number / 899):6.2f}%', end='')
 
-            print()
-            out_file_path = out_subdir_path / f'seq_{sequence}.coco.json'
+            out_file_path =osp.join(out_subdir_path, "seq_{}_{}".format(sequence,annotation_style) )
+            # out_file_path = out_subdir_path / f'seq_{sequence}.coco.json'
             with open(out_file_path, 'w') as f:
                 json.dump(coco_dict, f)
 

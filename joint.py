@@ -38,6 +38,9 @@ class Joint(object):
 		'left_ankle',
 	]
 
+	NAMES_CROWDPOSE = ['left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist',
+					   'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee',
+					   'left_ankle', 'right_ankle', 'head', 'neck']
 
 	def __init__(self, array):
 		# type: (np.ndarray) -> None
@@ -83,6 +86,17 @@ class Joint(object):
 		"""
 		return not (self.occ or self.soc)
 
+	@property
+	def get_v_flag(self):
+		# type: () -> int
+		"""
+		:return: Return Visbility Flag
+		"""
+		if (self.occ):
+			return 1  # labeled but not visible
+		if (self.soc):
+			return 3  # labeled but occluded by self
+		return 2  # labeled and visible
 
 	@property
 	def pos2d(self):
