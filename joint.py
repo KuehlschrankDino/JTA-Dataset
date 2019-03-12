@@ -37,10 +37,15 @@ class Joint(object):
 		'left_knee',
 		'left_ankle',
 	]
-
+	#same as in annotations but head replaced with head_top
 	NAMES_CROWDPOSE = ['left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist',
 					   'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee',
-					   'left_ankle', 'right_ankle', 'head', 'neck']
+					   'left_ankle', 'right_ankle', 'head_top', 'neck']
+
+	# same as in annotations but head_bottom replaced with neck
+	NAMES_POSETRACK = ['nose', 'neck', 'head_top', 'left_ear', 'right_ear', 'left_shoulder',
+					   'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist',
+					   'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle', 'right_ankle']
 
 	def __init__(self, array):
 		# type: (np.ndarray) -> None
@@ -168,15 +173,20 @@ class Joint(object):
 		)
 		return image
 
+	def get_conversion_idx(BASE_NAMES, TARGET_NAMES):
+		a = []
+		for x in TARGET_NAMES:
+			if x in BASE_NAMES:
+				a.append(BASE_NAMES.index(x))
+			else:
+				a.append(-1)
+		return a
+
 
 	def __str__(self):
 		visibility = 'visible' if self.visible else 'occluded'
-		return
+		return "{}|2D:({},{})|3D:({},{},{})|{}".format(self.name,self.x2d,self.y2d,self.x3d,self.y3d,self.z3d,visibility)
 
-
-
-
-		#return f'{self.name}|2D:({self.x2d},{self.y2d})|3D:({self.x3d},{self.y3d},{self.z3d})|{visibility}'
 
 
 	__repr__ = __str__

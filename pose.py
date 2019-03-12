@@ -8,7 +8,10 @@ import numpy as np
 
 from joint import Joint
 jta_idx = [i for i in range(22)]
-crowd_pose_idx = [8, 4, 9, 5, 10, 6, 19, 16, 20, 17, 21, 18, 0, 2]
+#created with:
+
+crowd_pose_idx = Joint.get_conversion_idx(Joint.NAMES, Joint.NAMES_CROWDPOSE)#[8, 4, 9, 5, 10, 6, 19, 16, 20, 17, 21, 18, 0, 2]
+pose_track_idx = Joint.get_conversion_idx(Joint.NAMES, Joint.NAMES_POSETRACK)
 class Pose(list):
 	"""
 	a Pose is a list of Joint(s) belonging to the same person.
@@ -41,6 +44,7 @@ class Pose(list):
 	]
 
 	SKELETON = [[l[0] + 1, l[1] + 1] for l in LIMBS]
+	#copied skeleton from crowdpose annotations but it seems nonsensical
 	SKELETON_CROWD_POSE = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13], [6, 7], [6, 8], [7, 9], [8, 10], [9, 11]]
 
 	def __init__(self, joints, keypoint_style):
@@ -122,21 +126,18 @@ class Pose(list):
 		if(self.keypoint_style == "CrowdPose"):
 			idx = crowd_pose_idx
 		elif(self.keypoint_style == "PoseTrack"):
-			idx = None
+			idx = pose_track_idx
 		else:
 			idx = jta_idx
-
-        # for idx in crowd_pose_idx:
-        #    keypoints += [self[idx].x2d, self[idx].y2d, self[idx].get_v_flag]
 
 		kpts = np.zeros((len(self), 3))
 		for i, j in enumerate(self):
 				kpts[i, ] = [j.x2d, j.y2d, j.get_v_flag]
-		keypoints = []
-		for i in idx:
-			keypoints += [kpts[i, ]]
+		keypoints = np.zeros((len(idx), 3))
+		for k, i in enumerate(idx):
+			keypoints[k,] = kpts[i, ]
 		annotation = {
-			'keypoints': keypoints,
+			'keypoints': keypoints.tolist(),
 			'num_keypoints': len(self),
 			'bbox': self.bbox_2d
 		}
