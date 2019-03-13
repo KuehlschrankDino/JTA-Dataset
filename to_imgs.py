@@ -6,7 +6,7 @@ import sys
 import click
 import imageio
 from path import Path
-
+import os
 
 imageio.plugins.ffmpeg.download()
 
@@ -15,7 +15,7 @@ H2 = 'number from which to start counting the video frames; DEFAULT = 1'
 H3 = 'the format to use to save the images/frames; DEFAULT = jpg'
 
 # check python version
-assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
+#assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
 
 
 @click.command()
@@ -32,22 +32,25 @@ def main(out_dir_path, first_frame, img_format):
     if not out_dir_path.exists():
         out_dir_path.makedirs()
 
-    for dir in Path('videos').dirs():
+    for dir in Path(os.path.join("../../data/JTA-Data", "videos")).dirs():
+
         out_subdir_path = out_dir_path / dir.basename()
         if not out_subdir_path.exists():
             out_subdir_path.makedirs()
-        print(f'▸ extracting \'{dir.basename()}\' set')
+        #print(f'▸ extracting \'{dir.basename()}\' set')
         for video in dir.files():
             out_seq_path = out_subdir_path / video.basename().split('.')[0]
             if not out_seq_path.exists():
                 out_seq_path.makedirs()
             reader = imageio.get_reader(video)
-            print(f'▸ extracting frames of \'{Path(video).abspath()}\'')
+            #print(f'▸ extracting frames of \'{Path(video).abspath()}\'')
             for frame_number, image in enumerate(reader):
                 n = first_frame + frame_number
-                imageio.imwrite(out_seq_path / f'{n}.{img_format}', image)
-                print(f'\r▸ progress: {100 * (frame_number / 899):6.2f}%', end='')
-            print()
+
+                imageio.imwrite(os.path.join(out_seq_path, "{:06d}.{}".format(n, img_format)), image)
+                # imageio.imwrite(out_seq_path / f'{n}.{img_format}', image)
+                #print(f'\r▸ progress: {100 * (frame_number / 899):6.2f}%', end='')
+            #print()
 
 
 if __name__ == '__main__':
