@@ -51,6 +51,8 @@ class Pose(list):
 		# type: (List[Joint]) -> None
 		super().__init__(joints)
 		self.keypoint_style = keypoint_style
+		self.n = 5
+		self.dist_thresh = 40
 
 	@property
 	def invisible(self):
@@ -62,6 +64,30 @@ class Pose(list):
 			if not j.occ:
 				return False
 		return True
+
+	@property
+	def too_far_from_camera(self):
+
+		for j in self:
+			if j.cam_distance > self.dist_thresh:
+				return True
+		return False
+
+
+	@property
+	def visible_and_onscreen_atleast_n(self):
+		# type: () -> bool
+		"""
+		:return: True if at least n joints are on creen and not occluded
+		"""
+		a = 0
+		for j in self:
+			if j.is_on_screen and not j.occ:
+				a = a +1
+			if a >= self.n:
+				return True
+
+		return False
 
 
 	@property
@@ -132,6 +158,7 @@ class Pose(list):
 
 		kpts = np.zeros((len(self), 3))
 		for i, j in enumerate(self):
+			if j.is_on_screen:
 				kpts[i, ] = [j.x2d, j.y2d, j.get_v_flag]
 		keypoints = np.zeros((len(idx), 3))
 		for k, i in enumerate(idx):

@@ -5,7 +5,7 @@ import json
 import sys
 import os.path as osp
 import click
-
+import cv2
 import numpy as np
 from path import Path
 from pandas import read_csv
@@ -52,13 +52,16 @@ def main(dataset_root, keypoint_style, out_dir_path):
         out_dir_path.makedirs()
     annotations_path = osp.join(dataset_root, 'annotations')
     for dir in Path(annotations_path).dirs():
+        # if "train" !=dir.basename():
+        #     continue
         out_subdir_path = out_dir_path / dir.basename()
         if not out_subdir_path.exists():
             out_subdir_path.makedirs()
         print("'▸ converting {} set".format(dir.basename()))
 
         for anno in dir.files():
-
+            # if("seq_0" != osp.basename(anno).split(".")[0]):
+            #     continue
             if anno.endswith('.json'):
                 with open(anno, 'r') as json_file:
                     data = json.load(json_file)
@@ -97,11 +100,14 @@ def main(dataset_root, keypoint_style, out_dir_path):
                 image_id = 10000000000 + sequence * 10000 + (frame_number + 1)
 
                 # image_id = sequence * 1000 + (frame_number + 1) JTA BEFORE
+
+                img_path = osp.join("images", dir.basename(),
+                                    osp.basename(anno).split(".")[0],
+                                    "{:06d}.jpg".format(frame_number + 1))
+
                 coco_dict['images'].append({
                     'license': 4,
-                    'file_name': osp.join("images", dir.basename(),
-                                          osp.basename(anno).split(".")[0],
-                                          "{:06d}.jpeg".format(frame_number + 1)),    #f'{frame_number + 1}.jpg',
+                    'file_name': img_path,    #f'{frame_number + 1}.jpg',
                     'vid_id': vid_id,
                     'frame_id': image_id,
                     'height': 1080,
@@ -115,17 +121,22 @@ def main(dataset_root, keypoint_style, out_dir_path):
                 for p_id in set(frame_data[:, 1]):#todo check that the p_ids are not really large number
                     pose = get_pose(frame_data=frame_data, person_id=p_id, keypoint_style=keypoint_style)
 
-                    # ignore the "invisible" poses
-                    # (invisible pose = pose of which I do not see any joint)
-                    if pose.invisible:
-                        continue
-                    track_id = int(peds_dict.setdefault(p_id, len(peds_dict) + 1))
-                    annotation = pose.dino_annotation
-                    annotation['image_id'] = image_id
-                    annotation['track_id'] = track_id
-                    annotation['id'] = image_id * 100000 + track_id
-                    annotation['category_id'] = 1
-                    coco_dict['annotations'].append(annotation)
+                    #ignore poses which are nor or only barely on screen
+
+                    if pose.visible_and_onscreen_atleast_n and not pose.too_far_from_camera:
+                        # if (True):
+                        #     img = cv2.imread(osp.join(dataset_root, img_path))
+                        #     img = pose.draw(img, [0, 255, 0])
+                        #     cv2.imshow(img_path, img)
+                        #     cv2.waitKey(0)
+                        #     cv2.destroyAllWindows()
+                        track_id = int(peds_dict.setdefault(p_id, len(peds_dict) + 1))
+                        annotation = pose.dino_annotation
+                        annotation['image_id'] = image_id
+                        annotation['track_id'] = track_id
+                        annotation['id'] = image_id * 100000 + track_id
+                        annotation['category_id'] = 1
+                        coco_dict['annotations'].append(annotation)
 
 
             out_file_path =osp.join(out_subdir_path, "seq_{}.json".format(vid_id))

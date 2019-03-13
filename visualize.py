@@ -18,7 +18,7 @@ imageio.plugins.ffmpeg.download()
 MAX_COLORS = 42
 
 # check python version
-assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
+# assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
 
 
 def get_colors(number_of_colors, cmap_name='rainbow'):
@@ -41,7 +41,7 @@ def get_pose(frame_data, person_id):
 	"""
 	pose = [Joint(j) for j in frame_data[frame_data[:, 1] == person_id]]
 	pose.sort(key=(lambda j: j.type))
-	return Pose(pose)
+	return Pose(pose, "JTA")
 
 
 H1 = 'path of the video you want to visualize annotations'
@@ -74,7 +74,7 @@ def main(in_mp4_file_path, json_file_path, out_mp4_file_path, hide):
 
 	colors = get_colors(number_of_colors=MAX_COLORS, cmap_name='jet')
 
-	print(f'▸ visualizing annotations of \'{Path(in_mp4_file_path).abspath()}\'')
+	# print(f'▸ visualizing annotations of \'{Path(in_mp4_file_path).abspath()}\'')
 	for frame_number, image in enumerate(reader):
 
 		# NOTE: frame #0 does NOT exists: first frame is #1
@@ -95,10 +95,10 @@ def main(in_mp4_file_path, json_file_path, out_mp4_file_path, hide):
 			image = pose.draw(image=image, color=color)
 
 		writer.append_data(np.vstack([image, image[-8:, :]]))
-		print(f'\r▸ progress: {100*(frame_number/899):6.2f}%', end='')
+		# print(f'\r▸ progress: {100*(frame_number/899):6.2f}%', end='')
 
 	writer.close()
-	print(f'\n▸ video with annotations: \'{out_mp4_file_path.abspath()}\'\n')
+	# print(f'\n▸ video with annotations: \'{out_mp4_file_path.abspath()}\'\n')
 
 
 if __name__ == '__main__':
