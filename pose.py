@@ -163,9 +163,10 @@ class Pose(list):
 		keypoints = np.zeros((len(idx), 3))
 		for k, i in enumerate(idx):
 			keypoints[k,] = kpts[i, ]
+
 		annotation = {
 			'keypoints': keypoints.tolist(),
-			'num_keypoints': len(self),
+			'num_keypoints': len(idx),
 			'bbox': self.bbox_2d
 		}
 		return annotation
