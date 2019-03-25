@@ -16,7 +16,7 @@ from pose import Pose
 
 
 MAX_COLORS = 42
-
+NUMBER_OF_FRAMES_TO_SKIP = 15
 # check python version ##the world is not ready for f-strings yet
 #assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
 
@@ -52,7 +52,7 @@ def main(dataset_root, keypoint_style, out_dir_path):
         out_dir_path.makedirs()
     annotations_path = osp.join(dataset_root, 'annotations')
     for dir in Path(annotations_path).dirs():
-        # if "train" !=dir.basename():
+        # if "test" !=dir.basename():
         #     continue
         out_subdir_path = out_dir_path / dir.basename()
         if not out_subdir_path.exists():
@@ -97,6 +97,8 @@ def main(dataset_root, keypoint_style, out_dir_path):
             peds_dict = {}
             vid_id = "{:06d}".format(sequence)
             for frame_number in range(0, 900):
+                if(frame_number % NUMBER_OF_FRAMES_TO_SKIP != 0):
+                    continue
                 image_id = 10000000000 + sequence * 10000 + (frame_number + 1)
 
                 # image_id = sequence * 1000 + (frame_number + 1) JTA BEFORE
