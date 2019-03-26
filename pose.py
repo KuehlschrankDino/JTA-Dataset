@@ -165,7 +165,7 @@ class Pose(list):
 			keypoints[k,] = kpts[i, ]
 
 		annotation = {
-			'keypoints': keypoints.tolist(),
+			'keypoints': keypoints.flatten().tolist(),
 			'num_keypoints': len(idx),
 			'bbox': self.bbox_2d
 		}
