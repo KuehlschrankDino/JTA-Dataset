@@ -38,9 +38,10 @@ class Joint(object):
 		'left_ankle',
 	]
 	#same as in annotations but head replaced with head_top
-	NAMES_CROWDPOSE = ['left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist',
-					   'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee',
-					   'left_ankle', 'right_ankle', 'head_top', 'neck']
+	# NAMES_CROWDPOSE = ['left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist',
+	# 				   'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee',
+	# 				   'left_ankle', 'right_ankle', 'head_top', 'neck']
+	NAMES_CROWDPOSE = ['left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist','right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee','left_ankle', 'right_ankle', 'head_top', 'neck']
 
 	# same as in annotations but head_bottom replaced with neck
 	NAMES_POSETRACK = ['nose', 'neck', 'head_top', 'left_ear', 'right_ear', 'left_shoulder',

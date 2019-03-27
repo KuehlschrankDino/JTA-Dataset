@@ -54,6 +54,7 @@ class Pose(list):
 		self.n = 5
 		self.dist_thresh = 40
 
+
 	@property
 	def invisible(self):
 		# type: () -> bool
@@ -164,6 +165,7 @@ class Pose(list):
 		for k, i in enumerate(idx):
 			keypoints[k,] = kpts[i, ]
 
+
 		annotation = {
 			'keypoints': keypoints.flatten().tolist(),
 			'num_keypoints': len(idx),
@@ -192,6 +194,7 @@ class Pose(list):
 			image = joint.draw(image)
 
 		return image
+
 
 
 	def __iter__(self):

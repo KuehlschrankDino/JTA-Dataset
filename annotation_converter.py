@@ -16,9 +16,24 @@ from pose import Pose
 
 
 MAX_COLORS = 42
-NUMBER_OF_FRAMES_TO_SKIP = 15
+NUMBER_OF_FRAMES_TO_SKIP = 1
 # check python version ##the world is not ready for f-strings yet
 #assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
+
+
+def get_keypoint_names_from_style(keypoint_style):
+    if (keypoint_style == "JTA"):
+        return Joint.NAMES
+    if (keypoint_style == "CrowdPose"):
+        return Joint.NAMES_CROWDPOSE
+    if (keypoint_style == "PoseTrack"):
+        return Joint.NAMES_POSETRACK
+
+def get_skeleton_from_keypoint_style(keypoint_style):
+    if (keypoint_style == "JTA"):
+        return Pose.SKELETON
+    if (keypoint_style == "CrowdPose"):
+        return Pose.SKELETON_CROWD_POSE
 
 
 def get_pose(frame_data, person_id, keypoint_style):
@@ -90,8 +105,8 @@ def main(dataset_root, keypoint_style, out_dir_path):
                     'supercategory': 'person',
                     'id': 1,
                     'name': 'person',
-                    'keypoints': Joint.NAMES,
-                    'skeleton': Pose.SKELETON
+                    'keypoints': get_keypoint_names_from_style(keypoint_style),
+                    'skeleton': get_skeleton_from_keypoint_style(keypoint_style)
                 }]
             }
             peds_dict = {}
