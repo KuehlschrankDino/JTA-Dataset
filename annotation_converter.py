@@ -81,11 +81,8 @@ def main(dataset_root, keypoint_style, out_dir_path):
                 with open(anno, 'r') as json_file:
                     data = json.load(json_file)
                     data = np.array(data)
-            # elif anno.endswith('.csv'):
-            #     df = read_csv(anno, sep=",")
-            #     df = df.drop(axis=1,
-            #                  labels=["cam_3D_x", "cam_3D_y", "cam_3D_z", "cam_rot_x", "cam_rot_y", "cam_rot_z", "fov"])
-            #     data = df.to_numpy(dtype=np.float32)
+            elif anno.endswith('.npy'):
+                data = np.load(anno)
 
             print("▸ converting annotations of {}".format(Path(anno).abspath()))
 
@@ -111,7 +108,8 @@ def main(dataset_root, keypoint_style, out_dir_path):
             }
             peds_dict = {}
             vid_id = "{:06d}".format(sequence)
-            for frame_number in range(0, 900):
+            for frame_number in range(0, 1800):
+
                 if(frame_number % NUMBER_OF_FRAMES_TO_SKIP != 0):
                     continue
                 image_id = 10000000000 + sequence * 10000 + (frame_number + 1)
@@ -121,6 +119,10 @@ def main(dataset_root, keypoint_style, out_dir_path):
                 img_path = osp.join("images", dir.basename(),
                                     osp.basename(anno).split(".")[0],
                                     "{:06d}.jpg".format(frame_number + 1))
+
+                if not osp.isfile(osp.join(dataset_root, img_path)):
+                    print("{} does not exist...".format(osp.join(dataset_root, img_path)))
+                    break
 
                 coco_dict['images'].append({
                     'license': 4,
@@ -135,18 +137,16 @@ def main(dataset_root, keypoint_style, out_dir_path):
                 # NOTE: frame #0 does NOT exists: first frame is #1
                 frame_data = data[data[:, 0] == frame_number + 1]  # type: np.ndarray
 
+                # img = cv2.imread(osp.join(dataset_root, img_path))
                 for p_id in set(frame_data[:, 1]):#todo check that the p_ids are not really large number
                     pose = get_pose(frame_data=frame_data, person_id=p_id, keypoint_style=keypoint_style)
 
                     #ignore poses which are nor or only barely on screen
+                    if pose.visible_and_onscreen_atleast_n :#and not pose.too_far_from_camera:
 
-                    if pose.visible_and_onscreen_atleast_n and not pose.too_far_from_camera:
-                        # if (True):
-                        #     img = cv2.imread(osp.join(dataset_root, img_path))
-                        #     img = pose.draw(img, [0, 255, 0])
-                        #     cv2.imshow(img_path, img)
-                        #     cv2.waitKey(0)
-                        #     cv2.destroyAllWindows()
+
+                        # img = pose.draw(img, [0, 255, 0])
+
                         track_id = int(peds_dict.setdefault(p_id, len(peds_dict) + 1))
                         annotation = pose.dino_annotation
                         annotation['image_id'] = image_id
@@ -155,6 +155,9 @@ def main(dataset_root, keypoint_style, out_dir_path):
                         annotation['category_id'] = 1
                         coco_dict['annotations'].append(annotation)
 
+                # cv2.imshow(img_path, img)
+                # cv2.waitKey(0)
+                # cv2.destroyAllWindows()
 
             out_file_path =osp.join(out_subdir_path, "seq_{}.json".format(vid_id))
             with open(out_file_path, 'w') as f:
