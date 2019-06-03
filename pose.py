@@ -51,7 +51,7 @@ class Pose(list):
 		# type: (List[Joint]) -> None
 		super().__init__(joints)
 		self.keypoint_style = keypoint_style
-		self.n = 5
+		self.n = 4
 		self.dist_thresh = 40
 
 

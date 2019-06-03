@@ -12,15 +12,14 @@ target_anno_dir = Path(os.path.join(data_set_root, "annotations/train/"))
 if not target_anno_dir.exists():
     target_anno_dir.makedirs()
 for file in files:
-    if(file == "../../data/JTA/JTA/seq_34/coords.csv"):
-        continue
+
     source_dir = os.path.dirname(file)
     img_files = [x for x in os.listdir(source_dir) if x.endswith(".jpeg")]
     df = read_csv(file, sep=",")
     df = df.drop(axis=1,
                  labels=["cam_3D_x", "cam_3D_y", "cam_3D_z", "cam_rot_x", "cam_rot_y", "cam_rot_z", "fov"])
     df.drop(df[df.frame == 0].index, inplace=True)#drop first frame because sometimes it causes issues and also to keep consistency with original dataset
-    df.drop(df[df.frame > len(img_files)].index, inplace=True)#discard annotations that exceed number of frames
+    # df.drop(df[df.frame > len(img_files)].index, inplace=True)#discard annotations that exceed number of frames
 
     data = df.to_numpy(dtype=np.float32)
 

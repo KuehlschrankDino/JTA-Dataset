@@ -17,8 +17,7 @@ from pose import Pose
 
 MAX_COLORS = 42
 
-# check python version ##the world is not ready for f-strings yet
-#assert sys.version_info >= (3, 6), '[!] This script requires Python >= 3.6'
+#to be deleted but still works
 
 
 def get_keypoint_names_from_style(keypoint_style):
@@ -75,8 +74,6 @@ def main(dataset_root, keypoint_style, out_dir_path):
         print("'▸ converting {} set".format(dir.basename()))
 
         for anno in dir.files():
-            # if("seq_0" != osp.basename(anno).split(".")[0]):
-            #     continue
             if anno.endswith('.json'):
                 with open(anno, 'r') as json_file:
                     data = json.load(json_file)
