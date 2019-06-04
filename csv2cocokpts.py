@@ -9,20 +9,40 @@ import pandas as pd
 from keypoint_style import get_annotation, KEYPOINT_SKELTIONS, KEYPOINT_NAMES
 
 
+frame_offsets = {
+    1: 1,
+    2: 1,
+    3: 1,
+    4: 1,
+    5: 1,
+    6: 1,
+    7: 2,
+    8: 2,
+    9: 1,
+    10: 2,
+    11: 1,
+    12: 1,
+    13: 1,
+    14: 1,
+    15: 1,
+    16: 1,
+    17: 1,
+    18: 2,
+    19: 1,
+    20: -1,
+    21: -1,
+    22: -1,
+    23: 1,
+    24: 1,
+    25: 2
+}
 
-
-
-def is_off_screen(x,y, w, h):
-    # type: () -> bool
-    """
-    :return: True if the joint is on screen, False otherwise
-    """
-
-    return (0 >= x >= w) or (0 >= y >= h)
+black_list = [19, 20, 21, 22]
 
 def parse_args():
-    #todo: add blacklisting of sequences
     parser = argparse.ArgumentParser()
+    #todo: add option to combine with existing dataset in fabbri-json format.
+    #todo: add crowdindex calculation.
     parser.add_argument('--keypoint_style', type=str, default='CrowdPose')
     parser.add_argument('--dataset_root', type=str)
     parser.add_argument('--img_format', type= str, default="jpeg")
@@ -33,7 +53,6 @@ def parse_args():
 def set_v_flags(frame_data, w,h):
     '''
     ==========================================================
-    NOTE#1: in ###, each keypoint is represented by its (x,y)
     2D location and a visibility flag `v` defined as:
     	- `v=0` ==> not labeled (in which case x=y=0)
     	- `v=1` ==> labeled but not visible
@@ -86,21 +105,15 @@ def csv_to_npy(csv_file_path, max_frame = 0):
     return df.to_numpy(dtype=np.float32)
 
 
-def seq_data_to_dict(coco_dict, data, seq_dir, img_format, w, h, keypoint_style, skip_frames):
+def seq_data_to_dict(coco_dict, data, seq_dir, img_format, w, h, keypoint_style, skip_frames,dataset_root):
     sequence = None
     try:
         sequence = int(seq_dir.split('_')[-1])
     except:
         print('[!] error during conversion.')
-        print('\ttry using JSON/CSV files with the original nomenclature.')
-
-    # if sequence in black_list:
-    #     print("Skipping because scene is not fitting.")
-    # return
+        print('\ttry using CSV files with the original nomenclature.')
 
     frame_nrs = np.unique(data[:, 0])
-
-
 
     peds_dict = {}
     for n in frame_nrs:
@@ -108,16 +121,21 @@ def seq_data_to_dict(coco_dict, data, seq_dir, img_format, w, h, keypoint_style,
         frame_data = data[data[:, 0] == n, :]
         frame_data = set_v_flags(frame_data, w, h)
         frame_data = filter_coords(frame_data)
+        n_offset = int(n + frame_offsets[sequence])
+        image_id = 10000000000 + sequence * 10000 + (n_offset)
+        img_file_path = os.path.join(seq_dir, "{}.{}".format(n_offset, img_format))
 
-        image_id = 10000000000 + sequence * 10000 + (n +1)
-        img_file_path = os.path.join(seq_dir, "{}.{}".format(int(n+1), img_format))
+        if not os.path.isfile(os.path.join(dataset_root, img_file_path)):
+            print("Skipping Frame: {}. No image found in: {}".format(n_offset, img_file_path))
+            continue
+
         coco_dict['images'].append({
             'license': 4,
             'file_name': img_file_path,
             # 'frame_id': image_id,
             'height': h,
             'width': w,
-            'id': image_id
+            'id': int(image_id)
         })
 
         #iterating over every person id in a single frame
@@ -146,8 +164,10 @@ def convert_annos_to_coco_format(csv_files, args):
 
     for csv_file in csv_files:
         print("▸ converting annotations of {}".format(csv_file))
-        # if 1 != int(os.path.dirname(csv_file).split("_")[-1]):
-        #     continue
+        seq_n = int(os.path.dirname(csv_file).split("_")[-1])
+        if seq_n in black_list:
+            print("Skipping Sequence {} because it is blacklisted.".format(seq_n))
+            continue
         abs_path = os.path.dirname(csv_file)
         rel_path = os.path.join("images", abs_path.split("/")[-1])
         img_files = [os.path.join(rel_path, x) for x in os.listdir(abs_path) if x.endswith(img_format)]
@@ -155,7 +175,7 @@ def convert_annos_to_coco_format(csv_files, args):
         w, h = img.size
 
         data = csv_to_npy(csv_file, len(img_files))
-        seq_data_to_dict(coco_dict, data, rel_path, img_format, w, h, args.keypoint_style, args.skip_frames)
+        seq_data_to_dict(coco_dict, data, rel_path, img_format, w, h, args.keypoint_style, args.skip_frames, args.dataset_root)
         anno_dir = os.path.join(args.dataset_root, "annotations")
 
     if not os.path.isdir(anno_dir):
