@@ -38,20 +38,7 @@ def sort_list(list1, list2):
     return z
 
 
-def bbox_2d(pose):
-    # type: () -> List[int]
-    """
-    :return: bounding box around the pose in format [x_min, y_min, width, height]
-        - x_min = x of the top left corner of the bounding box
-        - y_min = y of the top left corner of the bounding box
-    """
-    x_min = np.min(pose[:,0])
-    y_min = np.min(pose[:,1])
-    x_max = np.max(pose[:,0])
-    y_max = np.max(pose[:,1])
-    width = x_max - x_min
-    height = y_max - y_min
-    return [x_min, y_min, width, height]
+
 
 
 def get_annotation(frame_data, person_id, keypoint_style, base_keypoint_Style="JTA"):
@@ -68,16 +55,13 @@ def get_annotation(frame_data, person_id, keypoint_style, base_keypoint_Style="J
     pose = [[j[3], j[4], j[8]] for j in frame_data[frame_data[:, 1] == person_id]]
     pose = sort_list(pose, conversion_idx)
     pose = np.around(np.array(pose, dtype=np.float), decimals=3)
-    bbox = bbox_2d(pose)
-
+    #todo: check if numpy conversion is required
     pose = pose[:len(KEYPOINT_NAMES[keypoint_style])]
 
     annotation = {
-        'bbox': bbox,
         'keypoints': pose.flatten().tolist(),
         'num_keypoints': len(conversion_idx),
         'iscrowd': 0,
-        'area': bbox[2] * bbox[3]
     }
     return annotation
 
