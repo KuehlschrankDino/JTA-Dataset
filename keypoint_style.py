@@ -45,10 +45,10 @@ def bbox_2d(pose):
         - x_min = x of the top left corner of the bounding box
         - y_min = y of the top left corner of the bounding box
     """
-    x_min = int(np.min(pose[:,0]))
-    y_min = int(np.min(pose[:,1]))
-    x_max = int(np.max(pose[:,0]))
-    y_max = int(np.max(pose[:,1]))
+    x_min = np.min(pose[:,0])
+    y_min = np.min(pose[:,1])
+    x_max = np.max(pose[:,0])
+    y_max = np.max(pose[:,1])
     width = x_max - x_min
     height = y_max - y_min
     return [x_min, y_min, width, height]
@@ -65,9 +65,9 @@ def get_annotation(frame_data, person_id, keypoint_style, base_keypoint_Style="J
     global conversion_idx
     if (conversion_idx is None):
         conversion_idx = get_conversion_idx(KEYPOINT_NAMES[keypoint_style], KEYPOINT_NAMES[base_keypoint_Style])
-    pose = [[int(j[3]), int(j[4]), int(j[8])] for j in frame_data[frame_data[:, 1] == person_id]]
+    pose = [[j[3], j[4], j[8]] for j in frame_data[frame_data[:, 1] == person_id]]
     pose = sort_list(pose, conversion_idx)
-    pose = np.array(pose)
+    pose = np.around(np.array(pose, dtype=np.float), decimals=3)
     bbox = bbox_2d(pose)
 
     pose = pose[:len(KEYPOINT_NAMES[keypoint_style])]

@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 import os
 import json
+json.encoder.FLOAT_REPR = lambda x: format(x, '.2f')
 import argparse
 import pandas as pd
 
@@ -160,11 +161,14 @@ def convert_annos_to_coco_format(csv_files, args):
             'skeleton': KEYPOINT_SKELTIONS[args.keypoint_style]
         }]
     }
-    img_format = "jpeg"
+    img_format = args.img_format.split(".")[-1]
 
     for csv_file in csv_files:
         print("▸ converting annotations of {}".format(csv_file))
         seq_n = int(os.path.dirname(csv_file).split("_")[-1])
+        # if seq_n != 11:
+        #     print("Skipping Sequence {} because it is blacklisted.".format(seq_n))
+        #     continue
         if seq_n in black_list:
             print("Skipping Sequence {} because it is blacklisted.".format(seq_n))
             continue
