@@ -1,7 +1,5 @@
 import numpy as np
 
-conversion_idx = None
-
 
 KEYPOINT_SKELTIONS =dict(
        COCO = [(1, 2), (0, 1), (0, 2), (2, 4), (1, 3), (6, 8), (8, 10), (5, 7), (7, 9), (12, 14), (14, 16), (11, 13), (13, 15), (5, 6), (11, 12)],
@@ -20,48 +18,58 @@ KEYPOINT_NAMES = dict(
                 'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle', 'right_ankle'])
 
 
-def get_conversion_idx(BASE_NAMES, TARGET_NAMES):
-    a = []
-    for x in TARGET_NAMES:
-        if x in BASE_NAMES:
-            a.append(BASE_NAMES.index(x))
-        else:
-            a.append(999)
-    return a
+class KeypointConverter():
+
+    def __init__(self, target_style, base_style="JTA"):
+        self.TARGET_NAMES = KEYPOINT_NAMES[target_style]
+        self.BASE_NAMES = KEYPOINT_NAMES[base_style]
+        self.SWAPINDEXS, self.DROPINDEXS = self._calulate_conversion_idxs()
+        self.TARGET_STYLE = target_style
+
+    def _calulate_conversion_idxs(self):
+        """
+        Calculates which parts of the base annotation format needs to be dropped and which part needs to be swapped into
+        another position.
+        :param:
+        :return: list of swap positions, list of types to drop
+        """
+        old_order, drop_idxs = [], []
+        for x in self.BASE_NAMES:
+            if x in self.TARGET_NAMES:
+                old_order.append(x)
+            else:
+                drop_idxs.append(float(self.BASE_NAMES.index(x)))
+        swap_idxs = [old_order.index(x) for x in self.TARGET_NAMES]
+        return swap_idxs, drop_idxs
+
+    def get_drop_idxs(self):
+        """
+        Returns the types of keypoints which are not contained in the target keypoint style.
+        :param :
+        :return: list of indexes to drop
+        """
+        return self.DROPINDEXS
+
+    def get_target_kpt_names(self):
+        return KEYPOINT_NAMES[self.TARGET_STYLE]
+
+    def get_target_kpt_skeleton(self):
+        return KEYPOINT_SKELTIONS[self.TARGET_STYLE]
+
+    def reorder_keypoints(self, data):
+        """
+        Reorder the keypoints of a pose to align with the target kepyoint format. The base pose should only the same type
+        of keyoints as the target pose.
+        :param: np.array
+        :return: dict
+        """
+        n = int(np.sum(data[:, 8] > 0.0))
+        pose = np.stack([data[self.SWAPINDEXS,3],data[self.SWAPINDEXS,4],data[self.SWAPINDEXS,8]], axis=1)
+        return {
+            'keypoints': pose.flatten().tolist(),
+            'num_keypoints': n,
+        }
 
 
-def sort_list(list1, list2):
-    zipped_pairs = zip(list2, list1)
 
-    z = [x for _, x in sorted(zipped_pairs)]
-
-    return z
-
-
-
-
-
-def get_annotation(frame_data, person_id, keypoint_style, base_keypoint_Style="JTA"):
-    # type: (np.ndarray, int) -> Pose
-    """
-    :param frame_data: data of the current frame
-    :param person_id: person identifier
-    :param keypoint_style: keypoint format in which the pose should be converted to
-    :return: list of joints in the current frame of the required person ID
-    """
-    global conversion_idx
-    if (conversion_idx is None):
-        conversion_idx = get_conversion_idx(KEYPOINT_NAMES[keypoint_style], KEYPOINT_NAMES[base_keypoint_Style])
-    pose = [[j[3], j[4], j[8]] for j in frame_data[frame_data[:, 1] == person_id]]
-    pose = sort_list(pose, conversion_idx)
-    pose = np.around(np.array(pose, dtype=np.float), decimals=3)
-    #todo: check if numpy conversion is required
-    pose = pose[:len(KEYPOINT_NAMES[keypoint_style])]
-
-    annotation = {
-        'keypoints': pose.flatten().tolist(),
-        'num_keypoints': len(conversion_idx),
-        'iscrowd': 0,
-    }
-    return annotation
 

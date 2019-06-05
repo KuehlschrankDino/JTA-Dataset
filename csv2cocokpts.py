@@ -1,4 +1,3 @@
-
 import numpy as np
 from PIL import Image
 import os
@@ -7,8 +6,7 @@ json.encoder.FLOAT_REPR = lambda x: format(x, '.2f')
 import argparse
 import pandas as pd
 from cv2 import boundingRect
-from keypoint_style import get_annotation, KEYPOINT_SKELTIONS, KEYPOINT_NAMES
-
+from keypoint_style import KeypointConverter
 
 frame_offsets = {
     1: 1,
@@ -39,10 +37,9 @@ frame_offsets = {
 }
 
 black_list = [19, 20, 21, 22]
-
+CONVERTER = None
 def get_bounding_box(id, keypoints):
     """
-
     :param id:
     :param keypoints:
     :return: list containig id of person, x_tl,y_tl,x_br,y_br,and overall number of keypoints for person
@@ -78,6 +75,7 @@ def get_ci(pts, rect, na):
 def parse_args():
     parser = argparse.ArgumentParser()
     #todo: add option to combine with existing dataset in fabbri-json format.
+    #todo: crowdindex calculation should be in converted keypoint format......
     parser.add_argument('--keypoint_style', type=str, default='CrowdPose')
     parser.add_argument('--dataset_root', type=str)
     parser.add_argument('--img_format', type= str, default="jpeg")
@@ -93,7 +91,7 @@ def set_v_flags(frame_data, w,h):
     	- `v=1` ==> labeled but not visible
     	- `v=2` ==> labeled and visible
     	- 'v=3' ==> labeled and self occluded
-    ========
+    ==========================================================
     '''
     frame_data[:,8][(frame_data[:,8]== 0) & (frame_data[:,9] == 1)] = 3
     frame_data[:, 8][frame_data[:, 8] == 0] = 2
@@ -139,6 +137,7 @@ def csv_to_npy(csv_file_path, max_frame = 0):
     """
     df = pd.read_csv(csv_file_path, sep=",")
     df = df.drop(axis=1, labels=["cam_3D_x", "cam_3D_y", "cam_3D_z", "cam_rot_x", "cam_rot_y", "cam_rot_z", "fov"])
+
     # drop first frame because sometimes it causes issues and also to keep consistency with original dataset
     df.drop(df[df.frame == 0].index,inplace=True)
     df1 = df[df.isna().any(axis=1)]
@@ -148,7 +147,9 @@ def csv_to_npy(csv_file_path, max_frame = 0):
             max_frame = nan_frame - 1
     if max_frame != 0:
         df.drop(df[df.frame > max_frame].index, inplace=True)
+
     #discard annotations that exceed number of frames
+    df.drop(df[df["joint_type"].isin(CONVERTER.get_drop_idxs())].index, inplace=True)
 
     return df.to_numpy(dtype=np.float32)
 
@@ -200,27 +201,29 @@ def seq_data_to_dict(coco_dict, data, seq_dir, img_format, w, h, keypoint_style,
         coco_dict['images'].append({
             'license': 4,
             'file_name': img_file_path,
-            # 'frame_id': image_id,
             'crowdIndex': crowdindex,
             'height': h,
             'width': w,
             'id': int(image_id)
         })
         bboxes = xyxy2xywharea(bboxes)
-        #iterating over every person id in a single frame
+
         for box in bboxes:
             p_id = box[0]
             track_id = int(peds_dict.setdefault(p_id, len(peds_dict) + 1))
-            annotation = get_annotation(frame_data, p_id, keypoint_style)
+            annotation = CONVERTER.reorder_keypoints(frame_data[frame_data[:, 1] == p_id])
             annotation['image_id'] = image_id
             annotation['id'] = image_id * 100000 + track_id
             annotation['category_id'] = 1
+            annotation['iscrowd'] = 0
             annotation['area'] = box[5]
             annotation['bbox'] = box[1:5].tolist()
             coco_dict['annotations'].append(annotation)
 
 
 def convert_annos_to_coco_format(csv_files, args):
+    global CONVERTER
+    CONVERTER = KeypointConverter(args.keypoint_style)
     coco_dict = {
         'images': [],
         'annotations': [],
@@ -228,8 +231,8 @@ def convert_annos_to_coco_format(csv_files, args):
             'supercategory': 'person',
             'id': 1,
             'name': 'person',
-            'keypoints': KEYPOINT_NAMES[args.keypoint_style],
-            'skeleton': KEYPOINT_SKELTIONS[args.keypoint_style]
+            'keypoints': CONVERTER.get_target_kpt_names(),
+            'skeleton': CONVERTER.get_target_kpt_skeleton()
         }]
     }
     img_format = args.img_format.split(".")[-1]
@@ -237,6 +240,7 @@ def convert_annos_to_coco_format(csv_files, args):
     for csv_file in csv_files:
         print("▸ converting annotations of {}".format(csv_file))
         seq_n = int(os.path.dirname(csv_file).split("_")[-1])
+        
         if seq_n in black_list:
             print("Skipping Sequence {} because it is blacklisted.".format(seq_n))
             continue
